@@ -127,12 +127,18 @@ export default function HomePage() {
   };
 
   const updateProjectData = (key: FieldKey, value: string) => {
-    if (!currentProject) return;
-    persistProjects(projects.map((project) =>
-      project.id === currentProject.id
-        ? { ...project, data: { ...project.data, [key]: value } }
-        : project
-    ));
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id !== currentProjectId) return p;
+        return {
+          ...p,
+          data: {
+            ...(p.data ?? {}),
+            [key]: value,
+          },
+        };
+      })
+    );
   };
 
   const updateProjectDate = (key: string, value: string) => {
@@ -400,6 +406,7 @@ export default function HomePage() {
           {tab === "datos" && currentProject && (
             <ProjectDataTab
               project={currentProject}
+              bureau={currentBureau} // <-- pass your active Bureau here
               message={msg}
               onUpdate={updateProjectData}
               onSave={() => {
