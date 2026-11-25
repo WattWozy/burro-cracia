@@ -1,6 +1,7 @@
 import type { Tab } from "./types";
 
 const items: [Tab, string][] = [
+  ["despacho", "datos del estudio"],
   ["obras", "▦ Obras"],
   ["datos", "▤ Datos de la obra"],
   ["documentos", "▣ Generar documentos"],

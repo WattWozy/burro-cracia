@@ -16,6 +16,7 @@ import type { Tab } from "../components/types";
 import AppHeader from "../components/AppHeader";
 import BureauSelector from "../components/BureauSelector";
 import Sidebar from "../components/Sidebar";
+import BureauDataTab from "../components/BureauDataTab";
 import ProjectTab from "../components/ProjectTab";
 import ProjectDataTab from "../components/ProjectDataTab";
 import DocumentsTab from "../components/DocumentsTab";
@@ -145,12 +146,19 @@ export default function HomePage() {
 
   const createBureau = () => {
     const name = newBureauName.trim();
+
     if (!name) {
       alert("Escribe un nombre para el despacho.");
       return;
     }
-    const bureau: Bureau = { id: uuid(), name, createdAt: new Date().toISOString() };
+
+    const bureau: Bureau = {
+      ...createDefaultBureau(),
+      name,
+    };
+
     const next = [...bureaus, bureau];
+
     setBureaus(next);
     setCurrentBureauId(bureau.id);
     saveBureaus(next, bureau.id);
@@ -364,6 +372,19 @@ export default function HomePage() {
       <div className="layout">
         <Sidebar tab={tab} onChange={setTab} />
         <main className="panel">
+          {tab === "despacho" && currentBureau && (
+            <BureauDataTab
+              bureau={currentBureau}
+              onSave={(updated) => {
+                const next = bureaus.map((b) =>
+                  b.id === updated.id ? updated : b
+                );
+
+                setBureaus(next);
+                saveBureaus(next, currentBureauId);
+              }}
+            />
+          )}
           {tab === "obras" && (
             <ProjectTab
               projects={projects}
