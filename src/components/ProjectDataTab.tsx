@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import type { Bureau, Project, FieldKey } from "@/lib/types";
 import { FIELDS, KEYS } from "@/lib/constants";
 import { normalizeDate } from "@/lib/dates";
@@ -26,11 +26,15 @@ type Props = {
  *
  * Data persists on every field change via useProjects.updateProjectData — no Save button needed.
  * Bureau defaults are applied once on mount (when fields are empty) and can be re-applied manually.
+ * A "✓ Guardado" indicator confirms each save without requiring user action.
  */
 export default function ProjectDataTab({ project, bureau, onUpdate }: Props) {
   const bureauDefaults = useMemo(() => getBureauFieldDefaults(bureau), [bureau]);
-  // Tracks the last project+bureau combo we applied defaults for — avoids re-applying on re-render.
   const preloadedKeyRef = useRef<string | null>(null);
+
+  // Tracks last save timestamp to drive the "Guardado" indicator.
+  const [lastSaved, setLastSaved] = useState<number | null>(null);
+  const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Apply bureau defaults to empty fields once per (project, bureau) pair.
   useEffect(() => {
@@ -48,13 +52,24 @@ export default function ProjectDataTab({ project, bureau, onUpdate }: Props) {
     });
   }, [project.id, project.data, bureau, bureauDefaults, onUpdate]);
 
-  const handleReapplyFromBureau = (overwrite: boolean) => {
+  // Wraps onUpdate to also trigger the save indicator.
+  const handleUpdate = useCallback(
+    (key: FieldKey, value: string) => {
+      onUpdate(key, value);
+      setLastSaved(Date.now());
+      if (fadeTimer.current) clearTimeout(fadeTimer.current);
+      fadeTimer.current = setTimeout(() => setLastSaved(null), 2_500);
+    },
+    [onUpdate]
+  );
+
+  const handleReapply = (overwrite: boolean) => {
     (Object.keys(bureauDefaults) as FieldKey[]).forEach((key) => {
-      const fallback = bureauDefaults[key];
+      const fallback = typeof bureauDefaults[key] === "string" ? bureauDefaults[key] : undefined;
       if (!fallback) return;
       const existing = project.data?.[key];
       if (overwrite || !existing || existing.trim() === "") {
-        onUpdate(key, fallback);
+        handleUpdate(key, fallback);
       }
     });
   };
@@ -67,15 +82,45 @@ export default function ProjectDataTab({ project, bureau, onUpdate }: Props) {
     return typeof normalized === "string" ? normalized : "";
   }
 
+  const hasBureauDefaults = bureau && Object.keys(bureauDefaults).length > 0;
+
   return (
     <section className="section active">
-      <h1>Datos generales de la obra</h1>
-      <p className="hint">
-        Introduce una vez los datos que se repiten en varios impresos.
-        Cada campo se guarda automáticamente al escribir.
-      </p>
+      <div className="tab-header">
+        <div>
+          <h1>Datos generales de la obra</h1>
+          <p className="hint" style={{ marginBottom: 0 }}>
+            Campos que se repiten en varios impresos. Se guardan al escribir.
+          </p>
+        </div>
+        <div className={`save-badge ${lastSaved ? "save-badge--visible" : ""}`}>
+          ✓ Guardado
+        </div>
+      </div>
 
-      <div className="grid">
+      {hasBureauDefaults && (
+        <div className="bureau-fill-strip">
+          <span className="bureau-fill-label">
+            Datos del despacho «{bureau!.name}»:
+          </span>
+          <button
+            type="button"
+            className="btn secondary btn--sm"
+            onClick={() => handleReapply(false)}
+          >
+            Completar vacíos
+          </button>
+          <button
+            type="button"
+            className="btn secondary btn--sm"
+            onClick={() => handleReapply(true)}
+          >
+            Sobrescribir todo
+          </button>
+        </div>
+      )}
+
+      <div className="grid" style={{ marginTop: 16 }}>
         {FIELDS.map((k) => {
           const isDate = DATE_FIELDS.includes(k);
           const value = getSafeValue(k, isDate);
@@ -89,7 +134,7 @@ export default function ProjectDataTab({ project, bureau, onUpdate }: Props) {
               <input
                 type={isDate ? "date" : "text"}
                 value={value}
-                onChange={(e) => onUpdate(k, e.target.value)}
+                onChange={(e) => handleUpdate(k, e.target.value)}
                 placeholder={KEYS[k]}
               />
               {isModified && (
@@ -98,7 +143,7 @@ export default function ProjectDataTab({ project, bureau, onUpdate }: Props) {
                   <button
                     type="button"
                     className="btn-link"
-                    onClick={() => onUpdate(k, studioValue!)}
+                    onClick={() => handleUpdate(k, studioValue!)}
                   >
                     Restaurar
                   </button>
@@ -108,29 +153,6 @@ export default function ProjectDataTab({ project, bureau, onUpdate }: Props) {
           );
         })}
       </div>
-
-      {bureau && Object.keys(bureauDefaults).length > 0 && (
-        <div className="actions">
-          <button
-            type="button"
-            className="btn secondary"
-            onClick={() => handleReapplyFromBureau(false)}
-          >
-            Completar vacíos desde despacho
-          </button>
-          <button
-            type="button"
-            className="btn secondary"
-            onClick={() => handleReapplyFromBureau(true)}
-          >
-            Sobrescribir todo desde despacho
-          </button>
-        </div>
-      )}
-
-      <p className="hint" style={{ marginTop: 14 }}>
-        Los datos se guardan automáticamente en este navegador.
-      </p>
     </section>
   );
 }

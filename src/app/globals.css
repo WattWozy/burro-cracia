@@ -397,6 +397,57 @@ h3 { font-size: 14px; font-weight: 600; margin: 0; }
 
 .check input { margin-top: 4px; }
 
+/* ─── Tab header with save indicator ─────────────────────── */
+
+.tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.save-badge {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+  background: var(--green2);
+  padding: 4px 10px;
+  border-radius: 20px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  white-space: nowrap;
+  margin-top: 4px;
+}
+
+.save-badge--visible { opacity: 1; }
+
+/* ─── Bureau fill strip ───────────────────────────────────── */
+
+.bureau-fill-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: var(--blue2);
+  border: 1px solid var(--blue3);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.bureau-fill-label {
+  color: var(--blue);
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.btn--sm {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
 /* ─── Bureau gate (first-run) ────────────────────────────── */
 
 .gate-panel {

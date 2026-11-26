@@ -16,7 +16,6 @@ import HelpTab from "../components/HelpTab";
 import { useBureaus } from "../../hooks/useBureaus";
 import { useProjects } from "../../hooks/useProjects";
 import { useTemplates } from "../../hooks/useTemplates";
-import { useGeneratedDocs } from "../../hooks/useGeneratedDocs";
 import { useDocumentGeneration } from "../../hooks/useDocumentGeneration";
 
 export default function HomePage() {
@@ -58,19 +57,9 @@ export default function HomePage() {
     removeTemplate,
   } = useTemplates(currentBureauId);
 
-  const { generated, refreshGenerated } = useGeneratedDocs(currentProjectId);
-
-  const {
-    generatingId,
-    genErrors,
-    folderMsg,
-    generateOne,
-    saveToFolder,
-  } = useDocumentGeneration({
+  const { generatingId, genErrors, generateOne } = useDocumentGeneration({
     currentProject,
     allTemplates,
-    generated,
-    refreshGenerated,
   });
 
   if (!ready) {
@@ -174,14 +163,10 @@ export default function HomePage() {
               <DocumentsTab
                 project={currentProject}
                 templates={allTemplates}
-                generated={generated}
                 generatingId={generatingId}
                 genErrors={genErrors}
-                folderMsg={folderMsg}
                 onGenerateDoc={generateOne}
                 onUpdateDate={updateProjectDate}
-                onSaveToFolder={saveToFolder}
-                onRefreshGenerated={refreshGenerated}
               />
             ) : (
               <RequireProject onGo={() => setTab("obras")} />
@@ -201,12 +186,7 @@ export default function HomePage() {
             />
           )}
 
-          {tab === "ayuda" && (
-            <HelpTab
-              onExport={() => { /* TODO: backup util */ }}
-              onImport={() => { /* TODO: backup util */ }}
-            />
-          )}
+          {tab === "ayuda" && <HelpTab />}
         </main>
       </div>
 
