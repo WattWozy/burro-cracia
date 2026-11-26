@@ -57,10 +57,6 @@ function fieldValue(project: Project, t: Template, fieldName: string): string {
     const a = dateParts("acta");
     return a[["acta_dia", "acta_mes", "acta_anio"].indexOf(key)] || "";
   }
-/*   if (key === "fecha_aprobacion_plan") return dates.incidencias || data[key as FieldKey] || "";
- */  /* if (key === "fecha_inicio_obra") return dates.inicio || data[key as FieldKey] || ""; */
-  /* if (key === "fecha_fin") return dates.certificado || data[key as FieldKey] || ""; */
-
   const pairs: Record<string, [string, number]> = {
     orden_dia: ["ordenes", 0],
     orden_mes: ["ordenes", 1],
@@ -94,7 +90,7 @@ function fieldValue(project: Project, t: Template, fieldName: string): string {
   return a[i] || "";
 }
 
-  return data[key as FieldKey] || "";
+  return Object.hasOwn(data, key) ? (data[key as FieldKey] ?? "") : "";
 }
 
 async function loadPdfBytes(t: Template): Promise<Uint8Array> {
