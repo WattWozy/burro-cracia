@@ -16,67 +16,71 @@ function openPdfDB(): Promise<IDBDatabase> {
   });
 }
 
-export async function saveGeneratedDoc(
+/**
+ * Replaces any existing entry for (projectId, templateName), then inserts the new doc.
+ * All ops run in one readwrite transaction — no async yield between delete and put.
+ * See ADR-0003.
+ */
+export async function upsertGeneratedDoc(
   projectId: string,
   templateName: string,
   filename: string,
   bytes: Uint8Array
-): Promise<void> {
-  const d = await openPdfDB();
+): Promise<GeneratedDoc> {
+  const doc: GeneratedDoc = {
+    id: uuid(),
+    projectId,
+    templateName,
+    filename,
+    bytes: Array.from(bytes),
+    createdAt: new Date().toISOString(),
+  };
+
+  const db = await openPdfDB();
+
   return new Promise((resolve, reject) => {
-    const tx = d.transaction(PDF_STORE, "readwrite");
-    tx.objectStore(PDF_STORE).put({
-      id: uuid(),
-      projectId,
-      templateName,
-      filename,
-      bytes: Array.from(bytes),
-      createdAt: new Date().toISOString(),
-    } as GeneratedDoc);
-    tx.oncomplete = () => {
-      d.close();
-      resolve();
+    const tx = db.transaction(PDF_STORE, "readwrite");
+    const store = tx.objectStore(PDF_STORE);
+
+    // Chain delete + put synchronously within the same transaction.
+    const getAllReq = store.getAll();
+    getAllReq.onsuccess = () => {
+      const stale = (getAllReq.result as GeneratedDoc[]).filter(
+        (d) => d.projectId === projectId && d.templateName === templateName
+      );
+      for (const old of stale) store.delete(old.id);
+      store.put(doc);
     };
-    tx.onerror = () => {
-      d.close();
-      reject(tx.error);
-    };
+
+    tx.oncomplete = () => { db.close(); resolve(doc); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
   });
 }
 
 export async function getGeneratedDocs(
   projectId: string
 ): Promise<GeneratedDoc[]> {
-  const d = await openPdfDB();
+  const db = await openPdfDB();
   return new Promise((resolve, reject) => {
-    const tx = d.transaction(PDF_STORE, "readonly");
+    const tx = db.transaction(PDF_STORE, "readonly");
     const req = tx.objectStore(PDF_STORE).getAll();
     req.onsuccess = () => {
-      d.close();
+      db.close();
       const list = (req.result as GeneratedDoc[])
         .filter((x) => x.projectId === projectId)
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       resolve(list);
     };
-    req.onerror = () => {
-      d.close();
-      reject(req.error);
-    };
+    req.onerror = () => { db.close(); reject(req.error); };
   });
 }
 
 export async function deleteGeneratedDoc(id: string): Promise<void> {
-  const d = await openPdfDB();
+  const db = await openPdfDB();
   return new Promise((resolve, reject) => {
-    const tx = d.transaction(PDF_STORE, "readwrite");
+    const tx = db.transaction(PDF_STORE, "readwrite");
     tx.objectStore(PDF_STORE).delete(id);
-    tx.oncomplete = () => {
-      d.close();
-      resolve();
-    };
-    tx.onerror = () => {
-      d.close();
-      reject(tx.error);
-    };
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
   });
 }

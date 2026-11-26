@@ -2,17 +2,20 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { Project, FieldKey } from "@/lib/types";
-import {
-  loadProjects,
-  saveProjects,
-  createDefaultProject,
-} from "@/lib/storage";
+import { loadProjects, saveProjects, createDefaultProject } from "@/lib/storage";
 import {
   createNamedProject,
   updateProjectField,
   updateProjectDate as updateProjectDateUtil,
 } from "@/lib/utils/project";
 
+/**
+ * Manages projects for the active bureau.
+ *
+ * All mutations persist to localStorage immediately — there is no separate "save" step.
+ * updateProjectData uses a functional state updater so the persisted value is always
+ * identical to what React holds. See ADR-0002.
+ */
 export function useProjects(
   bureauId: string | null,
   defaults?: Partial<Record<FieldKey, string>>
@@ -21,7 +24,7 @@ export function useProjects(
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [newProjectName, setNewProjectName] = useState("");
 
-  // Load projects when bureau changes
+  // Reload when the active bureau changes.
   useEffect(() => {
     if (!bureauId) {
       setProjects([]);
@@ -38,11 +41,11 @@ export function useProjects(
 
     setProjects(loaded);
     setCurrentProjectId(loaded[0].id);
-  }, [bureauId]); // defaults intentionally omitted – only run on bureau change
+  }, [bureauId]); // defaults intentionally omitted — only run on bureau change
 
-  const currentProject =
-    projects.find((p) => p.id === currentProjectId) ?? null;
+  const currentProject = projects.find((p) => p.id === currentProjectId) ?? null;
 
+  /** Updates React state and persists atomically. */
   const persist = useCallback(
     (next: Project[]) => {
       if (!bureauId) return;
@@ -54,10 +57,7 @@ export function useProjects(
 
   const createProject = useCallback(() => {
     const name = newProjectName.trim();
-    if (!name) {
-      alert("Escribe un nombre para la obra.");
-      return;
-    }
+    if (!name) { alert("Escribe un nombre para la obra."); return; }
 
     const project = createNamedProject(name, defaults);
     persist([...projects, project]);
@@ -66,10 +66,7 @@ export function useProjects(
   }, [newProjectName, defaults, projects, persist]);
 
   const deleteProject = useCallback(() => {
-    if (projects.length <= 1) {
-      alert("Debe quedar al menos una obra.");
-      return;
-    }
+    if (projects.length <= 1) { alert("Debe quedar al menos una obra."); return; }
     if (!confirm("¿Eliminar esta obra y sus datos?")) return;
 
     const next = projects.filter((p) => p.id !== currentProjectId);
@@ -77,29 +74,26 @@ export function useProjects(
     setCurrentProjectId(next[0].id);
   }, [projects, currentProjectId, persist]);
 
+  /**
+   * Persists each field change immediately via functional state update.
+   * saveProjects is called with the same next value React will commit — no stale-closure risk.
+   */
   const updateProjectData = useCallback(
     (key: FieldKey, value: string) => {
-      if (!currentProjectId) return;
-      // Optimistic update – we don't persist on every keystroke
-      setProjects((prev) =>
-        updateProjectField(prev, currentProjectId, key, value)
-      );
+      if (!currentProjectId || !bureauId) return;
+      setProjects((prev) => {
+        const next = updateProjectField(prev, currentProjectId, key, value);
+        saveProjects(bureauId, next);
+        return next;
+      });
     },
-    [currentProjectId]
+    [currentProjectId, bureauId]
   );
-
-  // Call this when you want to actually save the current project data
-  const persistCurrentProject = useCallback(() => {
-    if (!bureauId) return;
-    saveProjects(bureauId, projects);
-  }, [bureauId, projects]);
 
   const updateProjectDate = useCallback(
     (key: string, value: string) => {
       if (!currentProjectId) return;
-      persist(
-        updateProjectDateUtil(projects, currentProjectId, key, value)
-      );
+      persist(updateProjectDateUtil(projects, currentProjectId, key, value));
     },
     [currentProjectId, projects, persist]
   );
@@ -115,6 +109,5 @@ export function useProjects(
     deleteProject,
     updateProjectData,
     updateProjectDate,
-    persistCurrentProject, // optional – useful if you want an explicit "Save" button
   };
 }

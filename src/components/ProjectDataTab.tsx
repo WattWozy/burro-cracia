@@ -18,28 +18,26 @@ const WIDE_FIELDS: FieldKey[] = ["obra_emplazamiento", "arquitectos"];
 type Props = {
   project: Project;
   bureau?: Bureau | null;
-  message: string;
   onUpdate: (key: FieldKey, value: string) => void;
-  onSave: () => void;
 };
 
-export default function ProjectDataTab({
-  project,
-  bureau,
-  message,
-  onUpdate,
-  onSave,
-}: Props) {
+/**
+ * Form for all project fields that appear across multiple documents.
+ *
+ * Data persists on every field change via useProjects.updateProjectData — no Save button needed.
+ * Bureau defaults are applied once on mount (when fields are empty) and can be re-applied manually.
+ */
+export default function ProjectDataTab({ project, bureau, onUpdate }: Props) {
   const bureauDefaults = useMemo(() => getBureauFieldDefaults(bureau), [bureau]);
+  // Tracks the last project+bureau combo we applied defaults for — avoids re-applying on re-render.
   const preloadedKeyRef = useRef<string | null>(null);
 
-  // 1. Preload empty fields once when project/bureau loads
+  // Apply bureau defaults to empty fields once per (project, bureau) pair.
   useEffect(() => {
     if (!bureau) return;
-
-    const loadSignature = `${project.id}:${bureau.id}`;
-    if (preloadedKeyRef.current === loadSignature) return;
-    preloadedKeyRef.current = loadSignature;
+    const signature = `${project.id}:${bureau.id}`;
+    if (preloadedKeyRef.current === signature) return;
+    preloadedKeyRef.current = signature;
 
     (Object.keys(bureauDefaults) as FieldKey[]).forEach((key) => {
       const existing = project.data?.[key];
@@ -50,12 +48,10 @@ export default function ProjectDataTab({
     });
   }, [project.id, project.data, bureau, bureauDefaults, onUpdate]);
 
-  // 2. Manual action if the user changed values and wants to pull studio data again
   const handleReapplyFromBureau = (overwrite: boolean) => {
     (Object.keys(bureauDefaults) as FieldKey[]).forEach((key) => {
       const fallback = bureauDefaults[key];
       if (!fallback) return;
-
       const existing = project.data?.[key];
       if (overwrite || !existing || existing.trim() === "") {
         onUpdate(key, fallback);
@@ -63,53 +59,32 @@ export default function ProjectDataTab({
     });
   };
 
-  function getSafeFieldValue(
-  data: Partial<Record<FieldKey, string>> | undefined,
-  key: FieldKey,
-  isDate: boolean
-): string {
-  if (!data || !Object.prototype.hasOwnProperty.call(data, key)) {
-    return "";
+  function getSafeValue(key: FieldKey, isDate: boolean): string {
+    const raw = project.data?.[key];
+    if (typeof raw !== "string") return "";
+    if (!isDate) return raw;
+    const normalized = normalizeDate(raw);
+    return typeof normalized === "string" ? normalized : "";
   }
-
-  const raw = data[key];
-  if (typeof raw !== "string") {
-    return "";
-  }
-
-  if (!isDate) {
-    return raw;
-  }
-
-  const normalized = normalizeDate(raw);
-  return typeof normalized === "string" ? normalized : "";
-}
 
   return (
     <section className="section active">
       <h1>Datos generales de la obra</h1>
       <p className="hint">
-        Introduce una vez los datos que pueden repetirse en varios
-        impresos. Los campos particulares se completan por separado.
+        Introduce una vez los datos que se repiten en varios impresos.
+        Cada campo se guarda automáticamente al escribir.
       </p>
 
       <div className="grid">
         {FIELDS.map((k) => {
           const isDate = DATE_FIELDS.includes(k);
+          const value = getSafeValue(k, isDate);
           const rawValue = project.data?.[k] ?? "";
-          const value = getSafeFieldValue(project.data, k, isDate);
-          const studioValue =
-            bureauDefaults && Object.prototype.hasOwnProperty.call(bureauDefaults, k) && typeof bureauDefaults[k] === "string"
-              ? bureauDefaults[k]
-              : undefined;          
-          const isModifiedFromStudio =
-            Boolean(studioValue) && rawValue !== "" && rawValue !== studioValue;
+          const studioValue = bureauDefaults[k];
+          const isModified = Boolean(studioValue) && rawValue !== "" && rawValue !== studioValue;
 
           return (
-            <div
-              key={k}
-              className={`field ${WIDE_FIELDS.includes(k) ? "wide" : ""}`}
-            >
+            <div key={k} className={`field ${WIDE_FIELDS.includes(k) ? "wide" : ""}`}>
               <label>{KEYS[k]}</label>
               <input
                 type={isDate ? "date" : "text"}
@@ -117,21 +92,13 @@ export default function ProjectDataTab({
                 onChange={(e) => onUpdate(k, e.target.value)}
                 placeholder={KEYS[k]}
               />
-              {isModifiedFromStudio && (
-                <small className="muted" style={{ display: "block", marginTop: 4 }}>
-                  Valor del despacho: {studioValue}{" "}
+              {isModified && (
+                <small className="field-hint">
+                  Despacho: {studioValue}{" "}
                   <button
                     type="button"
+                    className="btn-link"
                     onClick={() => onUpdate(k, studioValue!)}
-                    style={{
-                      background: "none",
-                      border: 0,
-                      padding: 0,
-                      color: "var(--blue)",
-                      cursor: "pointer",
-                      font: "inherit",
-                      textDecoration: "underline",
-                    }}
                   >
                     Restaurar
                   </button>
@@ -142,12 +109,8 @@ export default function ProjectDataTab({
         })}
       </div>
 
-      <div className="actions">
-        <button className="btn" onClick={onSave}>
-          Guardar datos de la obra
-        </button>
-
-        {bureau && Object.keys(bureauDefaults).length > 0 && (
+      {bureau && Object.keys(bureauDefaults).length > 0 && (
+        <div className="actions">
           <button
             type="button"
             className="btn secondary"
@@ -155,10 +118,19 @@ export default function ProjectDataTab({
           >
             Completar vacíos desde despacho
           </button>
-        )}
-      </div>
+          <button
+            type="button"
+            className="btn secondary"
+            onClick={() => handleReapplyFromBureau(true)}
+          >
+            Sobrescribir todo desde despacho
+          </button>
+        </div>
+      )}
 
-      {message && <div className="notice success">{message}</div>}
+      <p className="hint" style={{ marginTop: 14 }}>
+        Los datos se guardan automáticamente en este navegador.
+      </p>
     </section>
   );
 }

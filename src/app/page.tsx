@@ -21,7 +21,6 @@ import { useDocumentGeneration } from "../../hooks/useDocumentGeneration";
 
 export default function HomePage() {
   const [tab, setTab] = useState<Tab>("obras");
-  const [msg, setMsg] = useState("");
 
   const {
     ready,
@@ -62,11 +61,10 @@ export default function HomePage() {
   const { generated, refreshGenerated } = useGeneratedDocs(currentProjectId);
 
   const {
-    selectedDocs,
-    genMsg,
+    generatingId,
+    genErrors,
     folderMsg,
-    toggleDoc,
-    generate,
+    generateOne,
     saveToFolder,
   } = useDocumentGeneration({
     currentProject,
@@ -101,7 +99,12 @@ export default function HomePage() {
 
         <main className="panel">
           {tab === "despacho" && currentBureau && (
-            <BureauDataTab bureau={currentBureau} onSave={updateBureau} />
+            // key forces remount on bureau switch — prevents stale local form state. See ADR-0004.
+            <BureauDataTab
+              key={currentBureauId ?? ""}
+              bureau={currentBureau}
+              onSave={updateBureau}
+            />
           )}
 
           {tab === "obras" && (
@@ -112,10 +115,7 @@ export default function HomePage() {
               newProjectName={newProjectName}
               onSelect={setCurrentProjectId}
               onNameChange={setNewProjectName}
-              onCreate={() => {
-                createProject();
-                setTab("datos");
-              }}
+              onCreate={() => { createProject(); setTab("datos"); }}
               onDelete={deleteProject}
             />
           )}
@@ -124,12 +124,7 @@ export default function HomePage() {
             <ProjectDataTab
               project={currentProject}
               bureau={currentBureau}
-              message={msg}
               onUpdate={updateProjectData}
-              onSave={() => {
-                setMsg("Datos guardados correctamente.");
-                setTimeout(() => setMsg(""), 2500);
-              }}
             />
           )}
 
@@ -138,9 +133,10 @@ export default function HomePage() {
               project={currentProject}
               templates={allTemplates}
               generated={generated}
-              genMsg={genMsg}
+              generatingId={generatingId}
+              genErrors={genErrors}
               folderMsg={folderMsg}
-              onGenerateDoc={generate}
+              onGenerateDoc={generateOne}
               onUpdateDate={updateProjectDate}
               onSaveToFolder={saveToFolder}
               onRefreshGenerated={refreshGenerated}
@@ -162,16 +158,15 @@ export default function HomePage() {
 
           {tab === "ayuda" && (
             <HelpTab
-              onExport={() => {/* use backup util */}}
-              onImport={() => {/* use backup util */}}
+              onExport={() => { /* TODO: backup util */ }}
+              onImport={() => { /* TODO: backup util */ }}
             />
           )}
         </main>
       </div>
 
       <div className="sub" style={{ margin: "16px 2px" }}>
-        Versión 0.5 · Next.js · Prototipo local multi-despacho · Los PDF
-        originales se incluyen como plantillas estáticas.
+        Versión 0.6 · Next.js · Prototipo local multi-despacho · Datos guardados en este navegador.
       </div>
     </div>
   );

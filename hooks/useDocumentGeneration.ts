@@ -2,11 +2,7 @@
 
 import { useState, useCallback } from "react";
 import type { Project, Template, GeneratedDoc } from "@/lib/types";
-import { BUILTIN_TEMPLATES } from "@/lib/constants";
-import {
-  generateAndDownloadPdfs,
-  saveGeneratedToFolder,
-} from "@/lib/utils/generate";
+import { generateOnePdf, saveGeneratedToFolder } from "@/lib/utils/generate";
 
 interface UseDocumentGenerationProps {
   currentProject: Project | null;
@@ -15,91 +11,71 @@ interface UseDocumentGenerationProps {
   refreshGenerated: () => Promise<void>;
 }
 
+/**
+ * Owns document generation state.
+ *
+ * generateOne(templateId) — generates a single PDF, persists it, downloads it.
+ *   Tracks which template is in-flight via generatingId so the UI can disable buttons.
+ *
+ * saveToFolder() — writes all existing generated docs to a user-chosen folder.
+ *
+ * See ADR-0001 for the per-template design rationale.
+ */
 export function useDocumentGeneration({
   currentProject,
   allTemplates,
   generated,
   refreshGenerated,
 }: UseDocumentGenerationProps) {
-  const [selectedDocs, setSelectedDocs] = useState<Set<string>>(
-    new Set(BUILTIN_TEMPLATES.map((t) => t.id))
-  );
-  const [genMsg, setGenMsg] = useState("");
+  // ID of the template currently generating, null when idle.
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  // Validation/generation errors from the most recent attempt.
+  const [genErrors, setGenErrors] = useState<string[]>([]);
   const [folderMsg, setFolderMsg] = useState("");
 
-  const toggleDoc = useCallback((id: string) => {
-    setSelectedDocs((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+  const generateOne = useCallback(
+    async (templateId: string) => {
+      if (!currentProject || generatingId) return;
 
-  const generate = useCallback(async () => {
-    if (!currentProject) return;
+      const template = allTemplates.find((t) => t.id === templateId);
+      if (!template) return;
 
-    const chosen = allTemplates.filter((t) => selectedDocs.has(t.id));
-    if (!chosen.length) {
-      alert("Selecciona al menos un impreso.");
-      return;
-    }
+      setGeneratingId(templateId);
+      setGenErrors([]);
 
-    setGenMsg("Generando PDF…");
-
-    try {
-      const { count, errors } = await generateAndDownloadPdfs(
-        currentProject,
-        chosen,
-        (msg) => setGenMsg(msg)
-      );
-
-      if (errors.length) {
-        setGenMsg(
-          "Corrige los siguientes errores antes de generar:\n" +
-            errors.map((e) => `• ${e}`).join("\n")
-        );
-        return;
+      try {
+        await generateOnePdf(template, currentProject);
+        await refreshGenerated();
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        setGenErrors(msg.split("\n"));
+      } finally {
+        setGeneratingId(null);
       }
-
-      await refreshGenerated();
-      setGenMsg(
-        `Se han generado y guardado ${count} PDF en esta obra. También se han descargado.`
-      );
-    } catch (error: unknown) {
-      const err = error as Error;
-      console.error(error);
-      setGenMsg("No se pudo generar el PDF: " + (err.message || String(error)));
-      alert("Error al generar PDF: " + (err.message || String(error)));
-    }
-  }, [currentProject, allTemplates, selectedDocs, refreshGenerated]);
+    },
+    [currentProject, allTemplates, generatingId, refreshGenerated]
+  );
 
   const saveToFolder = useCallback(async () => {
+    setFolderMsg("");
     try {
       const saved = await saveGeneratedToFolder(generated);
-      setFolderMsg(
-        `Se han guardado ${saved} PDF en la carpeta que has elegido.`
-      );
+      setFolderMsg(`${saved} PDF guardados en la carpeta elegida.`);
     } catch (error: unknown) {
       const err = error as { name?: string; message?: string };
-
       if (err?.name === "AbortError") {
         setFolderMsg("Selección de carpeta cancelada.");
         return;
       }
-
-      setFolderMsg(
-        "No se pudieron guardar: " + (err.message || String(error))
-      );
+      setFolderMsg("No se pudieron guardar: " + (err.message ?? String(error)));
     }
   }, [generated]);
 
   return {
-    selectedDocs,
-    genMsg,
+    generatingId,
+    genErrors,
     folderMsg,
-    toggleDoc,
-    generate,
+    generateOne,
     saveToFolder,
   };
 }

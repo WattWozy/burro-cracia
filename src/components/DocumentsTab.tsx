@@ -6,7 +6,10 @@ type Props = {
   project: Project;
   templates: Template[];
   generated: GeneratedDoc[];
-  genMsg: string;
+  /** ID of the template currently generating, null when idle. */
+  generatingId: string | null;
+  /** Validation/generation errors from the most recent attempt. */
+  genErrors: string[];
   folderMsg: string;
   onGenerateDoc: (templateId: string) => void;
   onUpdateDate: (key: string, value: string) => void;
@@ -14,14 +17,11 @@ type Props = {
   onRefreshGenerated: () => void;
 };
 
-type DateFieldSpec = {
-  key: string;
-  label: string;
-};
+type DateFieldSpec = { key: string; label: string };
 
 /**
- * Maps template IDs (or prefixes/slugs depending on your `Template.id` shape)
- * to the specific date fields that belong to that document.
+ * Maps template IDs to the date fields that belong to that document.
+ * Dates are per-document (not shared between templates) so they live here, not in project data.
  */
 const DATES_BY_TEMPLATE: Record<string, DateFieldSpec[]> = {
   acta: [
@@ -29,12 +29,12 @@ const DATES_BY_TEMPLATE: Record<string, DateFieldSpec[]> = {
   ],
   ordenes: [
     { key: "ordenes", label: "Fecha de solicitud" },
-    { key: "expedicionOrdenes", label: "Fecha de expedición (si se conoce)" },
+    { key: "expedicionOrdenes", label: "Fecha de expedición" },
   ],
   incidencias: [
     { key: "incidencias", label: "Fecha de aprobación del Plan" },
     { key: "incidenciasFirma", label: "Fecha de firma" },
-    { key: "expedicionIncidencias", label: "Fecha de expedición (si se conoce)" },
+    { key: "expedicionIncidencias", label: "Fecha de expedición" },
   ],
   certificado: [
     { key: "certificado", label: "Fecha de terminación" },
@@ -43,17 +43,13 @@ const DATES_BY_TEMPLATE: Record<string, DateFieldSpec[]> = {
 };
 
 function getDatesForTemplate(template: Template): DateFieldSpec[] {
-  if (DATES_BY_TEMPLATE[template.id]) {
-    return DATES_BY_TEMPLATE[template.id];
-  }
+  if (DATES_BY_TEMPLATE[template.id]) return DATES_BY_TEMPLATE[template.id];
 
-  // Fallback for custom or slightly differently named template IDs/names
   const haystack = `${template.id} ${template.name}`.toLowerCase();
   if (haystack.includes("acta")) return DATES_BY_TEMPLATE.acta;
   if (haystack.includes("orden")) return DATES_BY_TEMPLATE.ordenes;
   if (haystack.includes("incidencia")) return DATES_BY_TEMPLATE.incidencias;
   if (haystack.includes("certificado")) return DATES_BY_TEMPLATE.certificado;
-
   return [];
 }
 
@@ -64,14 +60,15 @@ function downloadDoc(doc: GeneratedDoc) {
   link.href = url;
   link.download = doc.filename;
   link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  setTimeout(() => URL.revokeObjectURL(url), 5_000);
 }
 
 export default function DocumentsTab({
   project,
   templates,
   generated,
-  genMsg,
+  generatingId,
+  genErrors,
   folderMsg,
   onGenerateDoc,
   onUpdateDate,
@@ -88,13 +85,24 @@ export default function DocumentsTab({
     <section className="section active">
       <h1>Generar documentos</h1>
       <p className="hint">
-        Revisa las fechas de cada impreso y genéralo de uno en uno. Las fechas
-        específicas de cada documento no se copian entre sí.
+        Revisa las fechas de cada impreso y pulsa «Generar PDF». El archivo
+        se descarga y queda guardado en esta ficha.
       </p>
 
-      <div className="doc-list" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      {genErrors.length > 0 && (
+        <div className="error-block">
+          <strong>Corrige estos datos antes de generar:</strong>
+          <ul className="error-list">
+            {genErrors.map((e, i) => <li key={i}>{e}</li>)}
+          </ul>
+        </div>
+      )}
+
+      <div className="doc-list">
         {templates.map((template) => {
           const docDates = getDatesForTemplate(template);
+          const isGenerating = generatingId === template.id;
+          const isBlocked = generatingId !== null && !isGenerating;
 
           return (
             <div className="card doc-card" key={template.id}>
@@ -102,35 +110,32 @@ export default function DocumentsTab({
                 <div>
                   <strong>{template.name}</strong>
                   <span className="muted">
-                    {" "}
-                    {template.builtin ? "Impreso inicial" : "Impreso añadido por ti"}
+                    {" · "}{template.builtin ? "Impreso inicial" : "Impreso personalizado"}
                   </span>
                 </div>
                 <button
                   type="button"
-                  className="btn"
+                  className={`btn${isGenerating ? " loading" : ""}`}
+                  disabled={isGenerating || isBlocked}
                   onClick={() => onGenerateDoc(template.id)}
                 >
-                  Generar PDF
+                  {isGenerating ? "Generando…" : "Generar PDF"}
                 </button>
               </div>
 
               {docDates.length > 0 && (
-                <div className="grid" style={{ marginTop: "0.75rem" }}>
-                  {docDates.map(({ key, label }) => {
-                    const inputId = `date-${template.id}-${key}`;
-                    return (
-                      <div className="field" key={key}>
-                        <label htmlFor={inputId}>{label}</label>
-                        <input
-                          id={inputId}
-                          type="date"
-                          value={normalizeDate(project.dates?.[key])}
-                          onChange={(e) => onUpdateDate(key, e.target.value)}
-                        />
-                      </div>
-                    );
-                  })}
+                <div className="grid doc-dates">
+                  {docDates.map(({ key, label }) => (
+                    <div className="field" key={key}>
+                      <label htmlFor={`date-${template.id}-${key}`}>{label}</label>
+                      <input
+                        id={`date-${template.id}-${key}`}
+                        type="date"
+                        value={normalizeDate(project.dates?.[key])}
+                        onChange={(e) => onUpdateDate(key, e.target.value)}
+                      />
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -138,27 +143,22 @@ export default function DocumentsTab({
         })}
       </div>
 
-      {genMsg && (
-        <div className="muted" style={{ marginTop: "0.75rem" }}>
-          {genMsg}
-        </div>
-      )}
+      <div className="section-divider" />
 
       <h2>PDF generados en esta obra</h2>
       <p className="hint">
-        Los documentos quedarán guardados en esta ficha para volver a
-        abrirlos o descargarlos cuando quieras.
+        Los documentos quedan guardados en este navegador para volver a
+        descargarlos cuando quieras, o guardarlos todos en una carpeta.
       </p>
 
       <div className="actions">
         <button type="button" className="btn secondary" onClick={onSaveToFolder}>
-          Guardar PDF de esta obra en una carpeta…
+          Guardar todos en una carpeta…
         </button>
       </div>
+      {folderMsg && <p className="hint" style={{ marginTop: 8 }}>{folderMsg}</p>}
 
-      {folderMsg && <div className="muted">{folderMsg}</div>}
-
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.75rem" }}>
+      <div className="generated-list">
         {!generated.length ? (
           <div className="empty">Todavía no hay PDF guardados para esta obra.</div>
         ) : (
@@ -168,9 +168,9 @@ export default function DocumentsTab({
                 <div>
                   <strong>{doc.templateName}</strong>
                   <span className="muted">
-                    {" "}
-                    {new Date(doc.createdAt).toLocaleString("es-ES")} · {doc.filename}
+                    {" · "}{new Date(doc.createdAt).toLocaleString("es-ES")}
                   </span>
+                  <span className="muted doc-filename">{doc.filename}</span>
                 </div>
                 <div className="actions" style={{ margin: 0 }}>
                   <button
