@@ -143,6 +143,7 @@ export default function HomePage() {
               onNameChange={setNewProjectName}
               onCreate={() => { createProject(); setTab("datos"); }}
               onDelete={deleteProject}
+              onContinue={() => setTab("datos")}
             />
           )}
 

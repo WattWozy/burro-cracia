@@ -9,11 +9,12 @@ type Props = {
   onNameChange: (name: string) => void;
   onCreate: () => void;
   onDelete: () => void;
+  onContinue: () => void;
 };
 
 export default function ProjectTab({
   projects, currentProject, currentProjectId, newProjectName,
-  onSelect, onNameChange, onCreate, onDelete,
+  onSelect, onNameChange, onCreate, onDelete, onContinue,
 }: Props) {
   return (
     <section className="section active">
@@ -51,7 +52,10 @@ export default function ProjectTab({
             {currentProject.data?.emplazamiento || "Sin emplazamiento"} ·{" "}
             {currentProject.data?.municipio || "Sin municipio"}
           </p>
-          <button className="btn danger" onClick={onDelete}>Eliminar esta obra</button>
+          <div className="actions" style={{ marginTop: 12 }}>
+            <button className="btn" onClick={onContinue}>Continuar con los datos →</button>
+            <button className="btn danger" onClick={onDelete}>Eliminar esta obra</button>
+          </div>
         </div>
       )}
       <div className="notice">

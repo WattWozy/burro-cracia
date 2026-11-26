@@ -3,9 +3,12 @@ import { createDefaultBureau } from "@/lib/storage";
 
 export function buildBureauDefaults(project: Project): Partial<Record<FieldKey, string>> {
   const defaultFields: FieldKey[] = [
-    "arquitectos", "arquitecto1", "arquitecto2", "colegiado1", "colegiado2",
-    "colegiado3", "colegiado4", "arquitecto_tecnico", "delegacion",
-    "provincia", "lugar",
+    "arquitectos",
+    "arquitecto1", "colegiado1",
+    "arquitecto2", "colegiado2",
+    "arquitecto3", "colegiado3",
+    "arquitecto4", "colegiado4",
+    "arquitecto_tecnico", "delegacion", "provincia", "lugar",
   ];
 
   return Object.fromEntries(

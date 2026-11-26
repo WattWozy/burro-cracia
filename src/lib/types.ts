@@ -8,6 +8,8 @@ export type FieldKey =
   | "arquitectos"
   | "arquitecto1"
   | "arquitecto2"
+  | "arquitecto3"
+  | "arquitecto4"
   | "colegiado1"
   | "colegiado2"
   | "colegiado3"
