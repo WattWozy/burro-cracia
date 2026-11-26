@@ -17,7 +17,13 @@ interface Props {
  * useState(initialBureau) always initializes with the correct bureau. See ADR-0004.
  */
 export default function BureauDataTab({ bureau: initialBureau, onSave }: Props) {
-  const [bureau, setBureau] = useState(initialBureau);
+  // Normalize legacy localStorage data that may be missing array/object fields.
+  const [bureau, setBureau] = useState({
+    ...initialBureau,
+    professionals: initialBureau.professionals ?? [],
+    address: initialBureau.address ?? { street: "", postalCode: "", municipality: "", province: "" },
+    contact: initialBureau.contact ?? { email: "", phone: "", website: "" },
+  });
   const [saved, setSaved] = useState(false);
 
   const update = <K extends keyof Bureau>(key: K, value: Bureau[K]) =>

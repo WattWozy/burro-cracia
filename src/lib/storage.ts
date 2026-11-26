@@ -17,12 +17,24 @@ function bureauKey() {
   return `${STORAGE_PREFIX}_bureaus`;
 }
 
+/** Normalizes a bureau loaded from localStorage to fill in fields added after the initial save. */
+function normalizeBureau(b: Bureau): Bureau {
+  return {
+    ...b,
+    professionals: b.professionals ?? [],
+    address: b.address ?? { street: "", postalCode: "", municipality: "", province: "" },
+    contact: b.contact ?? { email: "", phone: "", website: "" },
+    defaults: b.defaults ?? {},
+  };
+}
+
 export function loadBureaus(): { bureaus: Bureau[]; currentId: string | null } {
   if (typeof window === "undefined") return { bureaus: [], currentId: null };
   try {
     const raw = localStorage.getItem(bureauKey());
     if (!raw) return { bureaus: [], currentId: null };
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw) as { bureaus: Bureau[]; currentId: string | null };
+    return { ...parsed, bureaus: parsed.bureaus.map(normalizeBureau) };
   } catch {
     return { bureaus: [], currentId: null };
   }
