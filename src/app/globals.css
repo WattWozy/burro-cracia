@@ -1,16 +1,25 @@
 :root {
-  --ink: #1d2939;
-  --muted: #667085;
-  --line: #d0d9e5;
-  --bg: #f2f5f8;
-  --white: #ffffff;
-  --blue: #2461b0;
-  --blue2: #e8f1fc;
-  --blue3: #d0e4f8;
-  --green: #18794e;
-  --green2: #eaf7ef;
-  --danger: #9b2222;
-  --danger2: #fff0f0;
+  /* Dark palette — default */
+  --ink: #cdd6e8;
+  --muted: #6e82a0;
+  --line: #252f42;
+  --bg: #0d1117;
+  --white: #131929;        /* "white" = card/panel bg */
+  --blue: #5b9ed4;
+  --blue2: #0f1f36;
+  --blue3: #17283f;
+  --green: #3ecf8e;
+  --green2: #09200f;
+  --danger: #f47171;
+  --danger2: #200d0d;
+  --notice-bg: #1c1600;
+  --notice-fg: #e8c26a;
+  --secondary-bg: #1b2638;
+  --secondary-hover: #223044;
+  --secondary-fg: #94abc4;
+  --label-fg: #7a8fa8;
+  --input-border: #2a3650;
+  --danger-hover: #2a1010;
   --radius: 10px;
   --radius-sm: 7px;
 }
@@ -19,6 +28,7 @@
 
 body {
   margin: 0;
+  color-scheme: dark;
   background: var(--bg);
   color: var(--ink);
   font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
@@ -88,23 +98,19 @@ body {
 
 .bureau-bar strong { font-size: 13px; color: var(--muted); white-space: nowrap; }
 
-.bureau-bar select {
-  min-width: 180px;
-  padding: 7px 10px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line);
-  font: inherit;
-  background: var(--white);
-}
-
+.bureau-bar select,
 .bureau-bar input {
   padding: 7px 10px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--line);
+  border: 1px solid var(--input-border);
   font: inherit;
-  max-width: 220px;
-  background: var(--white);
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--ink);
 }
+
+.bureau-bar select { min-width: 180px; }
+.bureau-bar input { max-width: 220px; }
 
 /* ─── Sidebar ─────────────────────────────────────────── */
 
@@ -131,7 +137,7 @@ body {
   transition: background 0.1s;
 }
 
-.nav button:hover { background: var(--bg); }
+.nav button:hover { background: var(--line); }
 
 .nav button.active {
   background: var(--blue2);
@@ -157,7 +163,7 @@ body {
 /* ─── Typography ──────────────────────────────────────── */
 
 h1 { font-size: 21px; font-weight: 700; margin: 0 0 4px; }
-h2 { font-size: 15px; font-weight: 700; margin: 22px 0 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+h2 { font-size: 13px; font-weight: 700; margin: 22px 0 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
 h3 { font-size: 14px; font-weight: 600; margin: 0; }
 
 .hint {
@@ -178,7 +184,7 @@ h3 { font-size: 14px; font-weight: 600; margin: 0; }
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #475467;
+  color: var(--label-fg);
   margin-bottom: 5px;
 }
 
@@ -186,12 +192,13 @@ h3 { font-size: 14px; font-weight: 600; margin: 0; }
 .field textarea,
 .field select {
   width: 100%;
-  border: 1px solid #c8d2de;
+  border: 1px solid var(--input-border);
   border-radius: var(--radius-sm);
   padding: 9px 10px;
   font: inherit;
   font-size: 14px;
-  background: var(--white);
+  background: var(--bg);
+  color: var(--ink);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
@@ -221,7 +228,7 @@ h3 { font-size: 14px; font-weight: 600; margin: 0; }
   border-radius: var(--radius-sm);
   padding: 9px 16px;
   background: var(--blue);
-  color: white;
+  color: #fff;
   font-weight: 600;
   font: inherit;
   font-size: 14px;
@@ -230,22 +237,22 @@ h3 { font-size: 14px; font-weight: 600; margin: 0; }
   white-space: nowrap;
 }
 
-.btn:hover { opacity: 0.88; }
-.btn:disabled, .btn.loading { opacity: 0.55; cursor: not-allowed; }
+.btn:hover { opacity: 0.85; }
+.btn:disabled, .btn.loading { opacity: 0.45; cursor: not-allowed; }
 
 .btn.secondary {
-  background: #eef2f6;
-  color: #344054;
+  background: var(--secondary-bg);
+  color: var(--secondary-fg);
 }
 
-.btn.secondary:hover { background: #e3e8f0; }
+.btn.secondary:hover { background: var(--secondary-hover); }
 
 .btn.danger {
   background: var(--danger2);
   color: var(--danger);
 }
 
-.btn.danger:hover { background: #ffe4e4; }
+.btn.danger:hover { background: var(--danger-hover); }
 
 .btn-link {
   background: none;
@@ -256,6 +263,11 @@ h3 { font-size: 14px; font-weight: 600; margin: 0; }
   font: inherit;
   font-size: 12px;
   text-decoration: underline;
+}
+
+.btn--sm {
+  padding: 5px 10px;
+  font-size: 13px;
 }
 
 .actions {
@@ -299,20 +311,6 @@ h3 { font-size: 14px; font-weight: 600; margin: 0; }
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.generated-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.doc-filename {
-  display: block;
-  font-size: 11px;
-  margin-top: 2px;
-  word-break: break-all;
-}
-
 .section-divider {
   height: 1px;
   background: var(--line);
@@ -325,7 +323,7 @@ h3 { font-size: 14px; font-weight: 600; margin: 0; }
   padding: 12px 14px;
   border-radius: var(--radius-sm);
   background: var(--danger2);
-  border: 1px solid #f5c6c6;
+  border: 1px solid var(--danger);
   margin-bottom: 16px;
   font-size: 13px;
   color: var(--danger);
@@ -355,13 +353,16 @@ h3 { font-size: 14px; font-weight: 600; margin: 0; }
 .notice {
   padding: 11px 14px;
   border-radius: var(--radius-sm);
-  background: #fff8e8;
-  color: #795b18;
+  background: var(--notice-bg);
+  color: var(--notice-fg);
   font-size: 13px;
   margin: 14px 0;
 }
 
-.success { background: var(--green2); color: #17643e; }
+.success {
+  background: var(--green2);
+  color: var(--green);
+}
 
 .empty {
   padding: 36px;
@@ -375,7 +376,7 @@ h3 { font-size: 14px; font-weight: 600; margin: 0; }
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   padding: 8px 0;
-  border-bottom: 1px solid #edf0f4;
+  border-bottom: 1px solid var(--line);
 }
 
 .fieldmap label { font-size: 12px; overflow-wrap: anywhere; color: var(--muted); }
@@ -383,10 +384,12 @@ h3 { font-size: 14px; font-weight: 600; margin: 0; }
 .fieldmap select {
   width: 100%;
   padding: 7px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--input-border);
   border-radius: var(--radius-sm);
   font: inherit;
   font-size: 13px;
+  background: var(--bg);
+  color: var(--ink);
 }
 
 .check {
@@ -443,11 +446,6 @@ h3 { font-size: 14px; font-weight: 600; margin: 0; }
   margin-right: 4px;
 }
 
-.btn--sm {
-  padding: 5px 10px;
-  font-size: 13px;
-}
-
 /* ─── Bureau gate (first-run) ────────────────────────────── */
 
 .gate-panel {
@@ -473,12 +471,13 @@ h3 { font-size: 14px; font-weight: 600; margin: 0; }
 
 .gate-input {
   flex: 1;
-  border: 1px solid #c8d2de;
+  border: 1px solid var(--input-border);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   font: inherit;
   font-size: 15px;
-  background: var(--white);
+  background: var(--bg);
+  color: var(--ink);
 }
 
 .gate-input:focus {

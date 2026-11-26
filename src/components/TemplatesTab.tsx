@@ -44,9 +44,7 @@ export default function TemplatesTab({
       ))}
       <div className="notice">
         En esta versión, los nuevos impresos deben contener campos de
-        formulario PDF (AcroForm). Si el PDF es una imagen escaneada o
-        tiene casillas dibujadas sin campos, habrá que configurar esos
-        campos manualmente en una mejora posterior.
+        formulario PDF.
       </div>
     </section>
   );

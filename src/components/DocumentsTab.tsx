@@ -80,9 +80,9 @@ export default function DocumentsTab({
               <div className="template-row">
                 <div>
                   <strong>{template.name}</strong>
-                  <span className="muted">
+                  {/* <span className="muted">
                     {" · "}{template.builtin ? "Impreso inicial" : "Impreso personalizado"}
-                  </span>
+                  </span> */}
                 </div>
                 <button
                   type="button"
