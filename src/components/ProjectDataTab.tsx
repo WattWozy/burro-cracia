@@ -80,7 +80,7 @@ export default function ProjectDataTab({ project, bureau, onUpdate }: Props) {
           const isDate = DATE_FIELDS.includes(k);
           const value = getSafeValue(k, isDate);
           const rawValue = project.data?.[k] ?? "";
-          const studioValue = bureauDefaults[k];
+          const studioValue = typeof bureauDefaults[k] === "string" ? bureauDefaults[k] : undefined;
           const isModified = Boolean(studioValue) && rawValue !== "" && rawValue !== studioValue;
 
           return (

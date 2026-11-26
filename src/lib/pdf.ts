@@ -80,7 +80,7 @@ function fieldValue(project: Project, t: Template, fieldName: string): string {
     expedicion_anio: ["expedicionIncidencias", 2],
   };
 
-  if (pairs[key]) {
+  if (Object.hasOwn(pairs, key)) {
   const pair = pairs[key];
 
   if (!Array.isArray(pair) || pair.length !== 2) {
