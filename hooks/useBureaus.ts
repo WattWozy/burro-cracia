@@ -2,11 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { Bureau, Project } from "@/lib/types";
-import {
-  loadBureaus,
-  saveBureaus,
-  createDefaultBureau,
-} from "@/lib/storage";
+import { loadBureaus, saveBureaus } from "@/lib/storage";
 import { createNamedBureau, buildBureauDefaults } from "@/lib/utils/bureau";
 
 export function useBureaus() {
@@ -18,18 +14,8 @@ export function useBureaus() {
   // Initial load
   useEffect(() => {
     const { bureaus: loaded, currentId } = loadBureaus();
-    let list = loaded;
-    let id = currentId;
-
-    if (!list.length) {
-      const bureau = createDefaultBureau();
-      list = [bureau];
-      id = bureau.id;
-      saveBureaus(list, id);
-    }
-
-    setBureaus(list);
-    setCurrentBureauId(id);
+    setBureaus(loaded);
+    setCurrentBureauId(loaded.length ? currentId : null);
     setReady(true);
   }, []);
 

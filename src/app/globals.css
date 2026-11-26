@@ -397,6 +397,45 @@ h3 { font-size: 14px; font-weight: 600; margin: 0; }
 
 .check input { margin-top: 4px; }
 
+/* ─── Bureau gate (first-run) ────────────────────────────── */
+
+.gate-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+}
+
+.gate-content {
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+}
+
+.gate-icon { font-size: 48px; margin-bottom: 16px; }
+
+.gate-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.gate-input {
+  flex: 1;
+  border: 1px solid #c8d2de;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 15px;
+  background: var(--white);
+}
+
+.gate-input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue2);
+}
+
 /* ─── Responsive ──────────────────────────────────────── */
 
 @media (max-width: 760px) {

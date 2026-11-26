@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { Project, FieldKey } from "@/lib/types";
-import { loadProjects, saveProjects, createDefaultProject } from "@/lib/storage";
+import { loadProjects, saveProjects } from "@/lib/storage";
 import {
   createNamedProject,
   updateProjectField,
@@ -32,15 +32,9 @@ export function useProjects(
       return;
     }
 
-    let loaded = loadProjects(bureauId);
-
-    if (!loaded.length) {
-      loaded = [createDefaultProject(defaults)];
-      saveProjects(bureauId, loaded);
-    }
-
+    const loaded = loadProjects(bureauId);
     setProjects(loaded);
-    setCurrentProjectId(loaded[0].id);
+    setCurrentProjectId(loaded.length ? loaded[0].id : null);
   }, [bureauId]); // defaults intentionally omitted — only run on bureau change
 
   const currentProject = projects.find((p) => p.id === currentProjectId) ?? null;
